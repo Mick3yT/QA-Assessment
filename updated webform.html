@@ -51,7 +51,7 @@
   margin-top: 30px;
   font-size: 1.1rem;
   position:sticky;
-  top: 0;
+  top: 0px;
   z-index: 3;
 }
 
@@ -86,7 +86,7 @@
 
 .question-table th {
   position: sticky;
-  top: 0;
+  top: 0px;
   background-color: #f4f4f400;
   font-weight: bold;
   z-index: 2;
@@ -300,6 +300,10 @@
   vertical-align: middle;
 }
 
+.row-missing {
+  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.35) inset;
+  transition: box-shadow 0.5s ease;
+}
 
 
   </style>
@@ -339,159 +343,270 @@
   </div>
 
   <script>
-    function getTooltipText(question) {
-  const tooltips = {
-    "Enrollment Application Type": "Must match provider's selected application category.",
-    "Enrollment Category": "Ensure selected category aligns with documentation provided.",
-    "Duplicate ATN": "Verify the application tracking number is unique.",
-    "Previously/Currently Enrolled": "Check for existing enrollment to avoid duplication.",
-    // Add more question-specific tips here
-  };
-  return tooltips[question] || "No additional guidance available.";
-}
-    const questions = {
-      "Enrollment Details": ["Enrollment Application Type","Enrollment Category","Duplicate ATN","Previously/Currently Enrolled"],
-      "Provider Verification": ["Provider Name","Provider DBA","Provider NPI","Date of Birth","SSN or Tax ID","Provider Type / Specialty"],
-      "Address Details": ["Services Address","Billing Address","Correspondence Address"],
-      "Screenings - Compliance": ["Taxonomy Code","Board Certification","CLIA","DEA","Accredidation/Board (Facility)","License","National Plan and Provider Enumeration System (NPPES)","PECOS"],
-      "Screenings - Regulatory": ["Social Security Administration's Death Master File (DMF)","LEIE or MED","System for Award Management (SAM)","Office of Inspector General (OIG)","State specific exclusions","Decentralized Exchange (DEX)","LexisNexis"],
-      "Screening - Risk": ["IRS","Site Visit","Fingerprint based Criminal Background Check (FCBC)","Risk Level"],
-      "Disclosures": ["Persons with Ownership or Control Interests (§ 455.104(b)(1))","Ownership or Control Relationships (§ 455.104(b)(2))","Name of Any Other Disclosing Entity","Managing Employee Disclosure","Direct or Indirect Ownership","Board Members","Disclosure Questions"],
-      "Application Completion": ["Application Fee","Signature & Date","Attachments"],
-      "Application Actions": ["Return to Provider (RTP)","Approved - Contract/effective date, reval date","Denied/Rejected"],
-      "System Documents & Comments": ["SMA system notes/comments","Proper Screening Validation Completed and Documented"]
-    };
+    // ✅ Single source of truth: sections, questions, optional tooltips
+const FORM_CONFIG = [
+  {
+    id: "enrollment_details",
+    title: "Enrollment Details",
+    items: [
+      { id: "app_type",   label: "Enrollment Application Type", tooltip: "Must match provider's selected application category." },
+      { id: "category",   label: "Enrollment Category",          tooltip: "Ensure selected category aligns with documentation provided." },
+      { id: "dup_atn",    label: "Duplicate ATN",                tooltip: "Verify the application tracking number is unique." },
+      { id: "prev_enroll",label: "Previously/Currently Enrolled",tooltip: "Check for existing enrollment to avoid duplication." }
+    ]
+  },
+  {
+    id: "provider_verification",
+    title: "Provider Verification",
+    items: [
+      { id: "prov_name",  label: "Provider Name" },
+      { id: "prov_dba",   label: "Provider DBA" },
+      { id: "prov_npi",   label: "Provider NPI" },
+      { id: "dob",        label: "Date of Birth" },
+      { id: "tax_id",     label: "SSN or Tax ID" },
+      { id: "ptype",      label: "Provider Type / Specialty" }
+    ]
+  },
+  {
+    id: "address_details",
+    title: "Address Details",
+    items: [
+      { id: "service_addr", label: "Services Address" },
+      { id: "billing_addr", label: "Billing Address" },
+      { id: "corr_addr",    label: "Correspondence Address" }
+    ]
+  },
+  {
+    id: "screenings_compliance",
+    title: "Screenings - Compliance",
+    items: [
+      { id: "taxonomy",   label: "Taxonomy Code" },
+      { id: "board_cert", label: "Board Certification" },
+      { id: "clia",       label: "CLIA" },
+      { id: "dea",        label: "DEA" },
+      { id: "accredit",   label: "Accreditation/Board (Facility)" },
+      { id: "license",    label: "License" },
+      { id: "nppes",      label: "National Plan and Provider Enumeration System (NPPES)" },
+      { id: "pecos",      label: "PECOS" }
+    ]
+  },
+  {
+    id: "screenings_regulatory",
+    title: "Screenings - Regulatory",
+    items: [
+      { id: "dmf",        label: "Social Security Administration's Death Master File (DMF)" },
+      { id: "leie_med",   label: "LEIE or MED" },
+      { id: "sam",        label: "System for Award Management (SAM)" },
+      { id: "oig",        label: "Office of Inspector General (OIG)" },
+      { id: "state_excl", label: "State specific exclusions" },
+      { id: "dex",        label: "Decentralized Exchange (DEX)" },
+      { id: "lexis",      label: "LexisNexis" }
+    ]
+  },
+  {
+    id: "screening_risk",
+    title: "Screening - Risk",
+    items: [
+      { id: "irs",        label: "IRS" },
+      { id: "site_visit", label: "Site Visit" },
+      { id: "fcbc",       label: "Fingerprint based Criminal Background Check (FCBC)" },
+      { id: "risk_level", label: "Risk Level" }
+    ]
+  },
+  {
+    id: "disclosures",
+    title: "Disclosures",
+    items: [
+      { id: "own_ctrl_1", label: "Persons with Ownership or Control Interests (§ 455.104(b)(1))" },
+      { id: "own_ctrl_2", label: "Ownership or Control Relationships (§ 455.104(b)(2))" },
+      { id: "other_entity", label: "Name of Any Other Disclosing Entity" },
+      { id: "managing_emp", label: "Managing Employee Disclosure" },
+      { id: "dir_indir_own", label: "Direct or Indirect Ownership" },
+      { id: "board_members", label: "Board Members" },
+      { id: "disc_questions", label: "Disclosure Questions" }
+    ]
+  },
+  {
+    id: "application_completion",
+    title: "Application Completion",
+    items: [
+      { id: "app_fee",   label: "Application Fee" },
+      { id: "sig_date",  label: "Signature & Date" },
+      { id: "attachments", label: "Attachments" }
+    ]
+  },
+  {
+    id: "application_actions",
+    title: "Application Actions",
+    items: [
+      { id: "rtp",       label: "Return to Provider (RTP)" },
+      { id: "approved",  label: "Approved - Contract/effective date, reval date" },
+      { id: "denied",    label: "Denied/Rejected" }
+    ]
+  },
+  {
+    id: "system_docs_comments",
+    title: "System Documents & Comments",
+    items: [
+      { id: "sma_notes",     label: "SMA system notes/comments" },
+      { id: "screening_val", label: "Proper Screening Validation Completed and Documented" }
+    ]
+  },
+];
 
-    let categoryScores = {};
+const TOOLTIPS = FORM_CONFIG.reduce((acc, sec) => {
+  for (const it of sec.items) if (it.tooltip) acc[it.label] = it.tooltip;
+  return acc;
+}, {});
 
-    function buildAssessmentForm(containerId, questions) {
-      const container = document.getElementById(containerId);
-      for (const [category, qs] of Object.entries(questions)) {
-        const section = document.createElement('div');
-        section.className = 'form-section';
-        const catId = category.replace(/[^a-zA-Z0-9]/g, '_');
-        section.innerHTML += `
-  <div class="category-title">
-  ${category}
+// ✅ same function name/signature, now uses the generated tooltip map
+function getTooltipText(question) {
+  return TOOLTIPS[question] || "No additional guidance available.";
+};
+
+    function buildAssessmentForm(containerId) {
+  const container = document.getElementById(containerId);
+
+  for (const sec of FORM_CONFIG) {
+    const section = document.createElement('div');
+    section.className = 'form-section';
+
+    section.innerHTML += `
+<div class="category-title">
+  ${sec.title}
   <span class="comment-bubble-wrapper">
-    <span class="comment-icon" onclick="openCommentBox('${catId}')" id="${catId}-icon">📝</span>
-    <span class="inline-comment" id="${catId}-comment-inline"></span>
+    <span class="comment-icon" onclick="openCommentBox('${sec.id}')" id="${sec.id}-icon">📝</span>
+    <span class="inline-comment" id="${sec.id}-comment-inline"></span>
   </span>
 </div>
 
 <table class="question-table">
-    <thead>
+  <thead>
+    <tr>
+      <th></th>
+      <th>Yes</th>
+      <th>No</th>
+      <th>N/A</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${sec.items.map((it, i) => `
       <tr>
-        <th></th>
-        <th>Yes</th>
-        <th>No</th>
-        <th>N/A</th>
+        <td>
+          <div>
+            ${it.label}
+            <span class="tooltip-wrapper">
+              <span class="tooltip-trigger">i</span>
+              <span class="tooltip-popup">${getTooltipText(it.label)}</span>
+            </span>
+          </div>
+          <div class="inline-comment" id="${sec.id}-q-comment-${i}" style="font-size: 12px; color: #666; margin-top: 4px;"></div>
+        </td>
+        <td><input type="radio" name="${sec.id}-${it.id}" value="Yes" onchange="recalculateSectionScoreById('${sec.id}')"></td>
+        <td><input type="radio" name="${sec.id}-${it.id}" value="No"  onchange="recalculateSectionScoreById('${sec.id}')"></td>
+        <td><input type="radio" name="${sec.id}-${it.id}" value="N/A" onchange="recalculateSectionScoreById('${sec.id}')"></td>
       </tr>
-    </thead>
-    <tbody>
-      ${qs.map((q, i) => `
-        <tr>
-         <td>
-  <div>
-    ${q}
-    <span class="tooltip-wrapper">
-      <span class="tooltip-trigger">i</span>
-      <span class="tooltip-popup">${getTooltipText(q)}</span>
-    </span>
-  </div>
-  <div class="inline-comment" id="${catId}-q-comment-${i}" style="font-size: 12px; color: #666; margin-top: 4px;"></div>
-</td>
-          <td>
-  <input type="radio" name="${catId}-q${i}" value="Yes" onchange="recalculateSectionScore('${catId}', ${qs.length})">
-</td>
-<td>
-  <input type="radio" name="${catId}-q${i}" value="No" onchange="recalculateSectionScore('${catId}', ${qs.length})">
-</td>
-<td>
-  <input type="radio" name="${catId}-q${i}" value="N/A" onchange="recalculateSectionScore('${catId}', ${qs.length})">
-</td>
-      `).join('')}
-    </tbody>
-  </table>
+    `).join('')}
+  </tbody>
+</table>
 `;
 
-        section.innerHTML += `
-          <textarea rows="2" style="display: none;"></textarea>
-          <div id="${catId}-score" class="score-label">Category Score: 0.0%</div>
-        `;
-        container.appendChild(section);
-        categoryScores[category] = qs.length;
+    section.innerHTML += `
+  <textarea rows="2" style="display: none;"></textarea>
+  <div id="${sec.id}-score" class="score-label">Category Score: 0.0%</div>
+`;
+    container.appendChild(section);
+  }
+}
+function tallySectionById(sectionId) {
+  const sec = FORM_CONFIG.find(s => s.id === sectionId);
+  if (!sec) return { yes: 0, answeredYN: 0, score: 0 };
+
+  let yes = 0, answeredYN = 0;
+  for (const it of sec.items) {
+    const radios = document.getElementsByName(`${sectionId}-${it.id}`);
+    for (const r of radios) {
+      if (r.checked) {
+        if (r.value === "Yes") yes++;
+        if (r.value === "Yes" || r.value === "No") answeredYN++;
+        break;
       }
     }
+  }
+  const score = answeredYN ? (yes / answeredYN) * 100 : 0;
+  return { yes, answeredYN, score };
+}
+
+function recalculateSectionScoreById(sectionId) {
+  const { score } = tallySectionById(sectionId);
+  const sec = FORM_CONFIG.find(s => s.id === sectionId);
+  const label = document.getElementById(`${sectionId}-score`);
+  if (label && sec) {
+    label.innerText = `${sec.title} Score: ${score.toFixed(1)}%`;
+  }
+  calculateScores(); // refresh totals
+}
 
     function calculateScores() {
-  let totalScore = 0;
-  let countedSections = 0;
-  let scoreSummary = [];
+  let totalYes = 0, totalAnswered = 0;
+  const scoreSummary = [];
 
-  for (const [category, count] of Object.entries(categoryScores)) {
-    const catId = category.replace(/[^a-zA-Z0-9]/g, '_');
-    let yesCount = 0;
-    let validAnsweredCount = 0;
+  for (const sec of FORM_CONFIG) {
+    const { yes, answeredYN, score } = tallySectionById(sec.id);
 
-    for (let i = 0; i < count; i++) {
-      const radios = document.getElementsByName(`${catId}-q${i}`);
-      for (const radio of radios) {
-        if (radio.checked) {
-          if (radio.value === "Yes") yesCount++;
-          if (radio.value === "Yes" || radio.value === "No") validAnsweredCount++;
-        }
-      }
+    // Update the section label (pretty display)
+    const label = document.getElementById(`${sec.id}-score`);
+    if (label) {
+      label.innerText = answeredYN
+        ? `${sec.title} Score: ${score.toFixed(1)}%`
+        : `${sec.title} Score: — (N/A)`;
     }
 
-    const sectionScore = validAnsweredCount ? (yesCount / validAnsweredCount) * 100 : 0;
+    // Totals for the whole form (math still ignores N/A)
+    totalYes += yes;
+    totalAnswered += answeredYN;
 
-
-    document.getElementById(`${catId}-score`).innerText = `${category} Score: ${sectionScore.toFixed(1)}%`;
-
-
-    if (validAnsweredCount > 0) {
-  totalScore += sectionScore;
-  countedSections++;
-} else {
-
-  console.log(`${category} excluded from total score (all N/A)`);
-}
-const comment = document.querySelector(`#${catId}-score`).previousElementSibling.value.trim();
-
-scoreSummary.push({
-  category,
-  score: sectionScore.toFixed(1),
-  comment: comment || null
-});
-
+    // Build the summary row (include display string)
+    const comment = document.querySelector(`#${sec.id}-score`).previousElementSibling.value.trim();
+    const sectionScoreDisplay = answeredYN ? `${score.toFixed(1)}%` : '— (N/A)';
+    scoreSummary.push({
+      category: sec.title,
+      score: score.toFixed(1),         // numeric, if you need it later
+      scoreDisplay: sectionScoreDisplay, // pretty text for the popup
+      comment: comment || null
+    });
   }
 
+  // Footer total (pretty + numeric)
+  const final = totalAnswered ? (100 * totalYes / totalAnswered).toFixed(1) : null;
+  const finalDisplay = totalAnswered ? `${final}%` : '— (N/A)';
+  document.getElementById('total-score').innerText = `Total Score: ${finalDisplay}`;
 
-  const final = countedSections ? (totalScore / countedSections).toFixed(1) : "0.0";
-  document.getElementById('total-score').innerText = `Total Score: ${final}%`;
-const assessor = document.getElementById('qa-assessor').value;
-const date = document.getElementById('qa-date').value;
-const account = document.getElementById('account').value;
-const employee = document.getElementById('employee-name').value;
-const appId = document.getElementById('app-id').value;
-const receivedDate = document.getElementById('app-date').value;
-const appType = document.getElementById('app-type').value;
+  // meta for the popup
+  const assessor     = document.getElementById('qa-assessor').value;
+  const date         = document.getElementById('qa-date').value;
+  const account      = document.getElementById('account').value;
+  const employee     = document.getElementById('employee-name').value;
+  const appId        = document.getElementById('app-id').value;
+  const receivedDate = document.getElementById('app-date').value;
+  const appType      = document.getElementById('app-type').value;
 
-return {
-  scoreSummary,
-  final,
-  metaSummary: `Assessor: ${assessor}
+  return {
+    scoreSummary,
+    final,         // numeric total (null if N/A)
+    finalDisplay,  // pretty total for UI/popup
+    metaSummary:
+`Assessor: ${assessor}
 Date: ${date}
 Account: ${account}
 Employee: ${employee}
 App ID: ${appId}
 Received: ${receivedDate}
 Type: ${appType}`
-};
- 
+  };
 }
-function openScorePopup(metaSummary, scoreSummary, final) {
+
+function openScorePopup(metaSummary, scoreSummary, finalDisplay) {
   const popup = window.open("", "Score Summary", "width=600,height=800");
 
   popup.document.write(`
@@ -540,13 +655,13 @@ function openScorePopup(metaSummary, scoreSummary, final) {
       <ul>
         ${scoreSummary.map(item => `
           <li>
-            <strong>${item.category}:</strong> ${item.score}%
+            <strong>${item.category}:</strong> ${item.scoreDisplay}
             ${item.comment ? `<div class="score-comment">Comment: ${item.comment}</div>` : ''}
           </li>
         `).join('')}
       </ul>
       <div style="margin-top: 20px; font-weight: bold; font-size: 18px; color: #007bff;">
-  Total Score: ${final}%
+  Total Score: ${finalDisplay}
 </div>
       <button class="print-button" onclick="window.print()">Print Summary</button>
     </body>
@@ -575,15 +690,10 @@ function saveComment() {
   textarea.value = value;
 
   const icon = document.getElementById(`${currentCommentCatId}-icon`);
-  if (icon) {
-    icon.classList.toggle("filled", !!value);
-  }
+  if (icon) icon.classList.toggle("filled", !!value);
 
   const inline = document.getElementById(`${currentCommentCatId}-comment-inline`);
-  if (inline) {
-    inline.innerHTML = value
-      inline.innerHTML = value ? `Comment: ${value}` : "";
-  }
+  if (inline) inline.innerHTML = value ? `Comment: ${value}` : "";
 
   closeCommentBox();
 }
@@ -601,55 +711,43 @@ function clearComment(catId, event) {
   if (inline) inline.innerHTML = "";
 }
 
-function recalculateSectionScore(catId, count) {
-  let yesCount = 0;
-  let validAnsweredCount = 0;
-
-  for (let i = 0; i < count; i++) {
-    const radios = document.getElementsByName(`${catId}-q${i}`);
-    for (const radio of radios) {
-      if (radio.checked) {
-        if (radio.value === "Yes") yesCount++;
-        if (radio.value === "Yes" || radio.value === "No") validAnsweredCount++;
-      }
-    }
-  }
-
-  const sectionScore = validAnsweredCount ? (yesCount / validAnsweredCount) * 100 : 0;
-  const label = document.getElementById(`${catId}-score`);
-  if (label) {
-    const categoryName = label.id.replace(/_/g, ' ').replace(/-score$/, '');
-    label.innerText = `${categoryName} Score: ${sectionScore.toFixed(1)}%`;
-  } calculateScores();
-}
-
    function handleSubmit() {
   if (!validateAllQuestionsAnswered()) {
     alert("Please answer all questions before submitting.");
     return;
   }
 
-  const { scoreSummary, final, metaSummary } =calculateScores(categoryScores);
-  openScorePopup(metaSummary, scoreSummary, final);
+  const { scoreSummary, finalDisplay, metaSummary } = calculateScores();
+  openScorePopup(metaSummary, scoreSummary, finalDisplay);
 }
 function validateAllQuestionsAnswered() {
-  for (const [category, count] of Object.entries(categoryScores)) {
-    const catId = category.replace(/[^a-zA-Z0-9]/g, '_');
-    for (let i = 0; i < count; i++) {
-      const radios = document.getElementsByName(`${catId}-q${i}`);
+  for (const sec of FORM_CONFIG) {
+    for (const it of sec.items) {
+      const name = `${sec.id}-${it.id}`;
+      const radios = document.getElementsByName(name);
       let answered = false;
-      for (const radio of radios) {
-        if (radio.checked) {
-          answered = true;
-          break;
-        }
-      }
+      for (const r of radios) { if (r.checked) { answered = true; break; } }
+
       if (!answered) {
-        return false; 
+        const firstInput = radios[0];
+        const row = firstInput?.closest('tr');
+
+        if (row) {
+          // Scroll the missing row into view
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Brief highlight
+          row.classList.add('row-missing');
+          setTimeout(() => row.classList.remove('row-missing'), 1500);
+        }
+
+        // Move keyboard focus to the first radio to help the user act immediately
+        if (firstInput) firstInput.focus();
+
+        return false; // stop at the first missing question
       }
     }
   }
-  return true;
+  return true; // everything answered
 }
 
     function clearForm() {
@@ -662,69 +760,65 @@ function validateAllQuestionsAnswered() {
 }
 
     async function saveFormData() {
-  const assessor = document.getElementById('qa-assessor').value;
-  const date = document.getElementById('qa-date').value;
-  const account = document.getElementById('account').value;
-  const employee = document.getElementById('employee-name').value;
-  const appId = document.getElementById('app-id').value;
+  const assessor     = document.getElementById('qa-assessor').value;
+  const date         = document.getElementById('qa-date').value;
+  const account      = document.getElementById('account').value;
+  const employee     = document.getElementById('employee-name').value;
+  const appId        = document.getElementById('app-id').value;
   const receivedDate = document.getElementById('app-date').value;
-  const appType = document.getElementById('app-type').value;
+  const appType      = document.getElementById('app-type').value;
 
-  let totalScoreSum = 0;
-  let sectionCount = 0;
+  let grandYes = 0, grandAnswered = 0;
   const flatData = [];
 
-  for (const [category, questionsList] of Object.entries(questions)) {
-    const catId = category.replace(/[^a-zA-Z0-9]/g, '_');
-    let yesCount = 0;
-    const sectionAnswers = [];
+  for (const sec of FORM_CONFIG) {
+  const sectionId = sec.id;
+  const category  = sec.title;
 
-    for (let i = 0; i < questionsList.length; i++) {
-      const radios = document.getElementsByName(`${catId}-q${i}`);
-      let selected = "";
-      radios.forEach(r => {
-        if (r.checked) {
-          selected = r.value;
-          if (selected === "Yes") yesCount++;
-        }
-      });
-      sectionAnswers.push(selected || "Not Answered");
-    }
-
-    const sectionScore = questionsList.length
-      ? (yesCount / questionsList.length) * 100
-      : 0;
-
-    sectionCount++;
-    totalScoreSum += sectionScore;
-
-    const comments = document.querySelector(`#${catId}-score`).previousElementSibling.value || "";
-
-    for (let i = 0; i < questionsList.length; i++) {
-      flatData.push({
-        assessor,
-        date,
-        account,
-        employee,
-        appId,
-        receivedDate,
-        appType,
-        category,
-        question: questionsList[i],
-        answer: sectionAnswers[i],
-        sectionScore: parseFloat(sectionScore.toFixed(1)),
-        totalScore: 0, 
-        comments
-      });
-    }
+  // Collect answers via ID-based radio names: `${sectionId}-${item.id}`
+  const sectionAnswers = [];
+  for (const it of sec.items) {
+    const radios = document.getElementsByName(`${sectionId}-${it.id}`);
+    let selected = "";
+    for (const r of radios) { if (r.checked) { selected = r.value; break; } }
+    sectionAnswers.push(selected || "Not Answered");
   }
 
-  const totalScore = sectionCount ? parseFloat((totalScoreSum / sectionCount).toFixed(1)) : 0;
+  // Section score (ignores N/A) using the ID-based tally
+  const { yes, answeredYN, score } = tallySectionById(sectionId);
+  grandYes += yes;
+  grandAnswered += answeredYN;
 
+  const comments = document.querySelector(`#${sectionId}-score`).previousElementSibling.value || "";
 
-  flatData.forEach(row => row.totalScore = totalScore);
+  // Flatten rows with both stable IDs and human-readable labels
+  for (let i = 0; i < sec.items.length; i++) {
+    const it = sec.items[i];
+    flatData.push({
+      // Stable identifiers
+      sectionId: sec.id,
+      itemId: it.id,
 
-  // Save
+      // Human-readable
+      assessor, date, account, employee, appId, receivedDate, appType,
+      category,
+      question: it.label,
+      answer: sectionAnswers[i],
+
+      // Scores (section score matches UI)
+      sectionScore: parseFloat(score.toFixed(1)),
+      totalScore: 0,
+
+      comments
+    });
+  }
+}
+
+  // Global total matches the UI rule: 100 * YES / (YES+NO)
+  const finalTotal = grandAnswered ? parseFloat((100 * grandYes / grandAnswered).toFixed(1)) : 0;
+  for (const row of flatData) row.totalScore = finalTotal;
+
+  // Save to file (File System Access API if available; otherwise download)
   const fileName = `QA_Assessment_${appId || "Unnamed"}.json`;
   const jsonBlob = new Blob([JSON.stringify(flatData, null, 2)], { type: 'application/json' });
 
@@ -738,28 +832,22 @@ function validateAllQuestionsAnswered() {
       await writable.write(jsonBlob);
       await writable.close();
       alert('File saved successfully.');
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        alert('Error saving file: ' + error.message);
-      }
+    } catch (e) {
+      if (e.name !== 'AbortError') alert('Error saving file: ' + e.message);
     }
   } else {
     const url = URL.createObjectURL(jsonBlob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
+    a.href = url; a.download = fileName; a.click();
     URL.revokeObjectURL(url);
     alert('Downloaded as fallback (browser does not support file picker).');
   }
 }
-function loadAssessmentData(data) {
-  if (!Array.isArray(data)) {
-    alert("Invalid file structure.");
-    return;
-  }
+function loadAssessmentData(raw) {
+  const data = Array.isArray(raw?.data) ? raw.data : raw; // supports envelope or flat
+  if (!Array.isArray(data)) { alert("Invalid file structure."); return; }
 
-  const firstRow = data[0];
+  const firstRow = data[0] || {};
 
   // Load metadata
   document.getElementById('qa-assessor').value = firstRow.assessor || "";
@@ -770,49 +858,50 @@ function loadAssessmentData(data) {
   document.getElementById('app-date').value = firstRow.receivedDate || "";
   document.getElementById('app-type').value = firstRow.appType || "";
 
-  const grouped = {};
-
-  data.forEach(row => {
-    const catId = row.category.replace(/[^a-zA-Z0-9]/g, '_');
-    if (!grouped[catId]) grouped[catId] = [];
-    grouped[catId].push(row);
-  });
-
-  for (const [catId, rows] of Object.entries(grouped)) {
-    rows.forEach((row, index) => {
-      const radios = document.getElementsByName(`${catId}-q${index}`);
-      radios.forEach(radio => {
-        radio.checked = radio.value === row.answer;
-      });
-    });
-
-    const commentBox = document.querySelector(`#${catId}-score`).previousElementSibling;
-const commentText = rows[0].comments || "";
-
-if (commentBox) {
-  commentBox.value = commentText;
-
-  const icon = document.getElementById(`${catId}-icon`);
-  if (icon) {
-    icon.classList.toggle("filled", !!commentText);
+  // 1) Try ID-based restore
+  let restoredByIds = false;
+  for (const row of data) {
+    if (row.sectionId && row.itemId) {
+      const name = `${row.sectionId}-${row.itemId}`;
+      const radios = document.getElementsByName(name);
+      for (const r of radios) r.checked = (r.value === row.answer);
+      restoredByIds = true;
+    }
   }
 
+  // 2) Fallback to legacy (category + index) if IDs weren’t present
+  if (!restoredByIds) {
+  for (const row of data) {
+    const sec = FORM_CONFIG.find(s => s.title === row.category);
+    if (!sec) continue;                               // section renamed? IDs path would handle it
+    const item = sec.items.find(it => it.label === row.question);
+    if (!item) continue;                              // question label changed; nothing to set
+    const name = `${sec.id}-${item.id}`;
+    const radios = document.getElementsByName(name);
+    for (const r of radios) r.checked = (r.value === row.answer);
+  }
+}
 
-  const inlinePreview = document.getElementById(`${catId}-comment-inline`);
-  if (inlinePreview) {
-  inlinePreview.innerHTML = commentText
-    inlinePreview.innerHTML = commentText ? `Comment: ${commentText}` : "";
-}
-}
+  // Restore comments by section (works for both paths)
+  for (const sec of FORM_CONFIG) {
+    const rows = data.filter(r => (r.sectionId === sec.id) || (r.category === sec.title));
+    const commentText = rows[0]?.comments || "";
+    const commentBox = document.querySelector(`#${sec.id}-score`)?.previousElementSibling;
+    if (commentBox) commentBox.value = commentText;
+
+    const icon = document.getElementById(`${sec.id}-icon`);
+    if (icon) icon.classList.toggle("filled", !!commentText);
+
+    const inlinePreview = document.getElementById(`${sec.id}-comment-inline`);
+    if (inlinePreview) inlinePreview.innerHTML = commentText ? `Comment: ${commentText}` : "";
   }
 
+  calculateScores();
   alert("Assessment loaded successfully!");
-  calculateScores(categoryScores);
 }
 
 
-
-    buildAssessmentForm("dynamic-sections", questions);
+    buildAssessmentForm("dynamic-sections");
     document.getElementById("load-input").addEventListener("change", function(event) {
   const file = event.target.files[0];
   if (!file) return;
