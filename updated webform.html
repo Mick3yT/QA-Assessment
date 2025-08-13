@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Provider Enrollment Quality Assessment</title>
+  <style>
+    :root {
+      --primary-color: #2c3e50;
+      --accent-color: blue;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 2vw + 1rem, 2.5rem);
+    }
+
+    .top-meta label {
+      font-weight: bold;
+      font-size: 14px;
+      font-style: italic;
+      font-family: Verdana, Geneva, Tahoma, sans-serif;
+    }
+
+    .form-section {
+      margin-bottom: 30px;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+
+    input[type="text"], input[type="date"], textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      font-size: 1rem;
+    }
+
+    .category-title {
+  background-color: #3ac295;  /* Deep blue */
+  color: rgb(0, 0, 0);
+  font-weight: bold;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-top: 30px;
+  font-size: 1.1rem;
+  position:sticky;
+  top: 0;
+  z-index: 3;
+}
+
+    .category-header {
+  display: grid;
+  grid-template-columns: 1fr 120px 120px 120px;
+  font-weight: bold;
+  padding: 5px 0;
+  border-bottom: 1px solid #ccc;
+  text-align: center;
+  gap: 12px;
+}
+
+.question-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.question-table th,
+.question-table td {
+  padding: 10px 15px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.question-table th:first-child,
+.question-table td:first-child {
+  text-align: left;
+  width: 50%;
+}
+
+.question-table th {
+  position: sticky;
+  top: 0;
+  background-color: #f4f4f400;
+  font-weight: bold;
+  z-index: 2;
+  border-bottom: 2px solid rgb(204, 204, 204)
+}
+
+
+  .question-row label {
+   padding-right: 4px 0;
+}
+.form-wrapper {
+  max-height: 900px;
+  overflow-y: auto;
+}
+
+
+    .question-row input[type="radio"] {
+      margin-right: 6px;
+    }
+
+    .score-label {
+      font-weight: bold;
+      color: var(--primary-color);
+    }
+
+    .submit-buttons {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    #total-score {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--accent-color);
+    }
+
+    /* Responsive Enhancements */
+    @media (max-width: 768px) {
+      .category-header,
+      .question-row {
+        grid-template-columns: 1fr;
+      }
+
+      .question-row label {
+        margin-bottom: 5px;
+      }
+
+      input[type="text"], input[type="date"], textarea {
+        font-size: 16px;
+      }
+
+      .submit-buttons {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .submit-buttons {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 10px 0;
+        border-top: 1px solid #ccc;
+      }
+    }
+      .tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.tooltip-trigger {
+  background-color: #e0e0e0;
+  border-radius: 50%;
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 18px;
+  color: #333;
+  cursor: default;
+}
+
+.tooltip-popup {
+  display: none;
+  position: absolute;
+  top: 24px;
+  left: 0;
+  width: 260px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  font-size: 13px;
+  color: #333;
+  z-index: 9999;
+  white-space: normal;
+}
+
+/* Little arrow (speech bubble style) */
+.tooltip-popup::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 10px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent transparent #ccc transparent;
+}
+
+.tooltip-popup::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 10px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent transparent #fff transparent;
+}
+.comment-icon {
+  margin-left: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  vertical-align: middle;
+}
+.custom-modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.custom-modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+}
+
+.tooltip-wrapper:hover .tooltip-popup {
+  display: block;
+}
+
+@media print {
+  button {
+    display: none;
+}
+}
+
+  .comment-bubble-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.inline-comment {
+  position: absolute;
+  top: 100%;
+  left: 42px;
+  background-color: rgb(255, 255, 255);
+  color: #444;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-style: italic;
+  margin-top: 6px;
+  max-width: 300px;
+  z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  display: none;
+}
+
+.comment-icon.filled:hover + .inline-comment {
+  display: block;
+}
+
+
+.comment-icon.filled {
+  color: #007bff;
+  font-weight: bold;
+}
+
+.comment-icon.filled::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background-color: red;
+  border-radius: 50%;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+
+
+  </style>
+</head>
+<body>
+  <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTy-HlXOKYLI2FAorBeRokPX352t7cGniE0y-sE3S1JeHm_5qlhuX_ureZkKfAoKQCSyw&usqp=CAU" alt="Company Logo" style="max-width: 250px; display: block; margin-bottom: 20px;">
+  <h1>Provider Enrollment Quality Assessment</h1>
+
+  <div class="form-section top-meta">
+    <label for="qa-assessor">QA Assessor</label>
+    <input type="text" id="qa-assessor">
+    <label for="qa-date">QA Assessment Date</label>
+    <input type="date" id="qa-date">
+    <label for="account">Account</label>
+    <input type="text" id="account">
+    <label for="employee-name">Employee Name</label>
+    <input type="text" id="employee-name">
+    <label for="app-id">Application ID Number</label>
+    <input type="text" id="app-id">
+    <label for="app-date">Application Received Date</label>
+    <input type="date" id="app-date">
+    <label for="app-type">Application Type</label>
+    <input type="text" id="app-type">
+  </div>
+
+  <div class="form-wrapper">
+  <div id="dynamic-sections" class="form-section"></div>
+</div>
+
+  <div class="submit-buttons">
+    <button type="button" onclick="handleSubmit()">Submit</button>
+    <button type="button" onclick="clearForm()">New Form</button>
+    <button type="button" onclick="saveFormData()">Save</button>
+    <input type="file" id="load-input" accept=".json" style="display: none" />
+    <button type="button" onclick="document.getElementById('load-input').click()">Load Assessment</button>
+    <div id="total-score">Total Score: 0.0%</div>
+  </div>
+
+  <script>
+    function getTooltipText(question) {
+  const tooltips = {
+    "Enrollment Application Type": "Must match provider's selected application category.",
+    "Enrollment Category": "Ensure selected category aligns with documentation provided.",
+    "Duplicate ATN": "Verify the application tracking number is unique.",
+    "Previously/Currently Enrolled": "Check for existing enrollment to avoid duplication.",
+    // Add more question-specific tips here
+  };
+  return tooltips[question] || "No additional guidance available.";
+}
+    const questions = {
+      "Enrollment Details": ["Enrollment Application Type","Enrollment Category","Duplicate ATN","Previously/Currently Enrolled"],
+      "Provider Verification": ["Provider Name","Provider DBA","Provider NPI","Date of Birth","SSN or Tax ID","Provider Type / Specialty"],
+      "Address Details": ["Services Address","Billing Address","Correspondence Address"],
+      "Screenings - Compliance": ["Taxonomy Code","Board Certification","CLIA","DEA","Accredidation/Board (Facility)","License","National Plan and Provider Enumeration System (NPPES)","PECOS"],
+      "Screenings - Regulatory": ["Social Security Administration's Death Master File (DMF)","LEIE or MED","System for Award Management (SAM)","Office of Inspector General (OIG)","State specific exclusions","Decentralized Exchange (DEX)","LexisNexis"],
+      "Screening - Risk": ["IRS","Site Visit","Fingerprint based Criminal Background Check (FCBC)","Risk Level"],
+      "Disclosures": ["Persons with Ownership or Control Interests (§ 455.104(b)(1))","Ownership or Control Relationships (§ 455.104(b)(2))","Name of Any Other Disclosing Entity","Managing Employee Disclosure","Direct or Indirect Ownership","Board Members","Disclosure Questions"],
+      "Application Completion": ["Application Fee","Signature & Date","Attachments"],
+      "Application Actions": ["Return to Provider (RTP)","Approved - Contract/effective date, reval date","Denied/Rejected"],
+      "System Documents & Comments": ["SMA system notes/comments","Proper Screening Validation Completed and Documented"]
+    };
+
+    let categoryScores = {};
+
+    function buildAssessmentForm(containerId, questions) {
+      const container = document.getElementById(containerId);
+      for (const [category, qs] of Object.entries(questions)) {
+        const section = document.createElement('div');
+        section.className = 'form-section';
+        const catId = category.replace(/[^a-zA-Z0-9]/g, '_');
+        section.innerHTML += `
+  <div class="category-title">
+  ${category}
+  <span class="comment-bubble-wrapper">
+    <span class="comment-icon" onclick="openCommentBox('${catId}')" id="${catId}-icon">📝</span>
+    <span class="inline-comment" id="${catId}-comment-inline"></span>
+  </span>
+</div>
+
+<table class="question-table">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Yes</th>
+        <th>No</th>
+        <th>N/A</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${qs.map((q, i) => `
+        <tr>
+         <td>
+  <div>
+    ${q}
+    <span class="tooltip-wrapper">
+      <span class="tooltip-trigger">i</span>
+      <span class="tooltip-popup">${getTooltipText(q)}</span>
+    </span>
+  </div>
+  <div class="inline-comment" id="${catId}-q-comment-${i}" style="font-size: 12px; color: #666; margin-top: 4px;"></div>
+</td>
+          <td>
+  <input type="radio" name="${catId}-q${i}" value="Yes" onchange="recalculateSectionScore('${catId}', ${qs.length})">
+</td>
+<td>
+  <input type="radio" name="${catId}-q${i}" value="No" onchange="recalculateSectionScore('${catId}', ${qs.length})">
+</td>
+<td>
+  <input type="radio" name="${catId}-q${i}" value="N/A" onchange="recalculateSectionScore('${catId}', ${qs.length})">
+</td>
+      `).join('')}
+    </tbody>
+  </table>
+`;
+
+        section.innerHTML += `
+          <textarea rows="2" style="display: none;"></textarea>
+          <div id="${catId}-score" class="score-label">Category Score: 0.0%</div>
+        `;
+        container.appendChild(section);
+        categoryScores[category] = qs.length;
+      }
+    }
+
+    function calculateScores() {
+  let totalScore = 0;
+  let countedSections = 0;
+  let scoreSummary = [];
+
+  for (const [category, count] of Object.entries(categoryScores)) {
+    const catId = category.replace(/[^a-zA-Z0-9]/g, '_');
+    let yesCount = 0;
+    let validAnsweredCount = 0;
+
+    for (let i = 0; i < count; i++) {
+      const radios = document.getElementsByName(`${catId}-q${i}`);
+      for (const radio of radios) {
+        if (radio.checked) {
+          if (radio.value === "Yes") yesCount++;
+          if (radio.value === "Yes" || radio.value === "No") validAnsweredCount++;
+        }
+      }
+    }
+
+    const sectionScore = validAnsweredCount ? (yesCount / validAnsweredCount) * 100 : 0;
+
+
+    document.getElementById(`${catId}-score`).innerText = `${category} Score: ${sectionScore.toFixed(1)}%`;
+
+
+    if (validAnsweredCount > 0) {
+  totalScore += sectionScore;
+  countedSections++;
+} else {
+
+  console.log(`${category} excluded from total score (all N/A)`);
+}
+const comment = document.querySelector(`#${catId}-score`).previousElementSibling.value.trim();
+
+scoreSummary.push({
+  category,
+  score: sectionScore.toFixed(1),
+  comment: comment || null
+});
+
+  }
+
+
+  const final = countedSections ? (totalScore / countedSections).toFixed(1) : "0.0";
+  document.getElementById('total-score').innerText = `Total Score: ${final}%`;
+const assessor = document.getElementById('qa-assessor').value;
+const date = document.getElementById('qa-date').value;
+const account = document.getElementById('account').value;
+const employee = document.getElementById('employee-name').value;
+const appId = document.getElementById('app-id').value;
+const receivedDate = document.getElementById('app-date').value;
+const appType = document.getElementById('app-type').value;
+
+return {
+  scoreSummary,
+  final,
+  metaSummary: `Assessor: ${assessor}
+Date: ${date}
+Account: ${account}
+Employee: ${employee}
+App ID: ${appId}
+Received: ${receivedDate}
+Type: ${appType}`
+};
+ 
+}
+function openScorePopup(metaSummary, scoreSummary, final) {
+  const popup = window.open("", "Score Summary", "width=600,height=800");
+
+  popup.document.write(`
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <title>Assessment Score Summary</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          padding: 30px;
+          color: #333;
+        }
+        .score-comment {
+          font-style: italic;
+          color: #555;
+          margin-top: 4px;
+        }
+        ul {
+          list-style-type: disc;
+          padding-left: 20px;
+        }
+        button.print-button {
+          margin-top: 30px;
+          padding: 8px 14px;
+          font-size: 14px;
+          background-color: #007bff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        @media print {
+          .print-button {
+            display: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTy-HlXOKYLI2FAorBeRokPX352t7cGniE0y-sE3S1JeHm_5qlhuX_ureZkKfAoKQCSyw&usqp=CAU" alt="Logo" style="max-width: 200px; display: block; margin-bottom: 15px;">
+      <h2>Assessment Score Summary</h2>
+      <div style="margin-bottom: 20px; white-space: pre-line;">${metaSummary}</div>
+
+      <h3 style="border-bottom: 1px solid #ccc;">Section Scores</h3>
+      <ul>
+        ${scoreSummary.map(item => `
+          <li>
+            <strong>${item.category}:</strong> ${item.score}%
+            ${item.comment ? `<div class="score-comment">Comment: ${item.comment}</div>` : ''}
+          </li>
+        `).join('')}
+      </ul>
+      <div style="margin-top: 20px; font-weight: bold; font-size: 18px; color: #007bff;">
+  Total Score: ${final}%
+</div>
+      <button class="print-button" onclick="window.print()">Print Summary</button>
+    </body>
+  </html>
+`);
+
+popup.document.close();
+}
+
+let currentCommentCatId = null;
+
+function openCommentBox(catId) {
+  currentCommentCatId = catId;
+  const textarea = document.querySelector(`#${catId}-score`).previousElementSibling;
+  document.getElementById("comment-input").value = textarea.value;
+  document.getElementById("comment-modal").style.display = "flex";
+}
+
+function closeCommentBox() {
+  document.getElementById("comment-modal").style.display = "none";
+}
+
+function saveComment() {
+  const value = document.getElementById("comment-input").value.trim();
+  const textarea = document.querySelector(`#${currentCommentCatId}-score`).previousElementSibling;
+  textarea.value = value;
+
+  const icon = document.getElementById(`${currentCommentCatId}-icon`);
+  if (icon) {
+    icon.classList.toggle("filled", !!value);
+  }
+
+  const inline = document.getElementById(`${currentCommentCatId}-comment-inline`);
+  if (inline) {
+    inline.innerHTML = value
+      inline.innerHTML = value ? `Comment: ${value}` : "";
+  }
+
+  closeCommentBox();
+}
+
+function clearComment(catId, event) {
+  event.stopPropagation();
+
+  const textarea = document.querySelector(`#${catId}-score`).previousElementSibling;
+  if (textarea) textarea.value = "";
+
+  const icon = document.getElementById(`${catId}-icon`);
+  if (icon) icon.classList.remove("filled");
+
+  const inline = document.getElementById(`${catId}-comment-inline`);
+  if (inline) inline.innerHTML = "";
+}
+
+function recalculateSectionScore(catId, count) {
+  let yesCount = 0;
+  let validAnsweredCount = 0;
+
+  for (let i = 0; i < count; i++) {
+    const radios = document.getElementsByName(`${catId}-q${i}`);
+    for (const radio of radios) {
+      if (radio.checked) {
+        if (radio.value === "Yes") yesCount++;
+        if (radio.value === "Yes" || radio.value === "No") validAnsweredCount++;
+      }
+    }
+  }
+
+  const sectionScore = validAnsweredCount ? (yesCount / validAnsweredCount) * 100 : 0;
+  const label = document.getElementById(`${catId}-score`);
+  if (label) {
+    const categoryName = label.id.replace(/_/g, ' ').replace(/-score$/, '');
+    label.innerText = `${categoryName} Score: ${sectionScore.toFixed(1)}%`;
+  } calculateScores();
+}
+
+   function handleSubmit() {
+  if (!validateAllQuestionsAnswered()) {
+    alert("Please answer all questions before submitting.");
+    return;
+  }
+
+  const { scoreSummary, final, metaSummary } =calculateScores(categoryScores);
+  openScorePopup(metaSummary, scoreSummary, final);
+}
+function validateAllQuestionsAnswered() {
+  for (const [category, count] of Object.entries(categoryScores)) {
+    const catId = category.replace(/[^a-zA-Z0-9]/g, '_');
+    for (let i = 0; i < count; i++) {
+      const radios = document.getElementsByName(`${catId}-q${i}`);
+      let answered = false;
+      for (const radio of radios) {
+        if (radio.checked) {
+          answered = true;
+          break;
+        }
+      }
+      if (!answered) {
+        return false; 
+      }
+    }
+  }
+  return true;
+}
+
+    function clearForm() {
+  location.reload();
+}
+
+    function clearModalComment() {
+  const textarea = document.getElementById("comment-input");
+  if (textarea) textarea.value = "";
+}
+
+    async function saveFormData() {
+  const assessor = document.getElementById('qa-assessor').value;
+  const date = document.getElementById('qa-date').value;
+  const account = document.getElementById('account').value;
+  const employee = document.getElementById('employee-name').value;
+  const appId = document.getElementById('app-id').value;
+  const receivedDate = document.getElementById('app-date').value;
+  const appType = document.getElementById('app-type').value;
+
+  let totalScoreSum = 0;
+  let sectionCount = 0;
+  const flatData = [];
+
+  for (const [category, questionsList] of Object.entries(questions)) {
+    const catId = category.replace(/[^a-zA-Z0-9]/g, '_');
+    let yesCount = 0;
+    const sectionAnswers = [];
+
+    for (let i = 0; i < questionsList.length; i++) {
+      const radios = document.getElementsByName(`${catId}-q${i}`);
+      let selected = "";
+      radios.forEach(r => {
+        if (r.checked) {
+          selected = r.value;
+          if (selected === "Yes") yesCount++;
+        }
+      });
+      sectionAnswers.push(selected || "Not Answered");
+    }
+
+    const sectionScore = questionsList.length
+      ? (yesCount / questionsList.length) * 100
+      : 0;
+
+    sectionCount++;
+    totalScoreSum += sectionScore;
+
+    const comments = document.querySelector(`#${catId}-score`).previousElementSibling.value || "";
+
+    for (let i = 0; i < questionsList.length; i++) {
+      flatData.push({
+        assessor,
+        date,
+        account,
+        employee,
+        appId,
+        receivedDate,
+        appType,
+        category,
+        question: questionsList[i],
+        answer: sectionAnswers[i],
+        sectionScore: parseFloat(sectionScore.toFixed(1)),
+        totalScore: 0, 
+        comments
+      });
+    }
+  }
+
+  const totalScore = sectionCount ? parseFloat((totalScoreSum / sectionCount).toFixed(1)) : 0;
+
+
+  flatData.forEach(row => row.totalScore = totalScore);
+
+  // Save
+  const fileName = `QA_Assessment_${appId || "Unnamed"}.json`;
+  const jsonBlob = new Blob([JSON.stringify(flatData, null, 2)], { type: 'application/json' });
+
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(jsonBlob);
+      await writable.close();
+      alert('File saved successfully.');
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        alert('Error saving file: ' + error.message);
+      }
+    }
+  } else {
+    const url = URL.createObjectURL(jsonBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    alert('Downloaded as fallback (browser does not support file picker).');
+  }
+}
+function loadAssessmentData(data) {
+  if (!Array.isArray(data)) {
+    alert("Invalid file structure.");
+    return;
+  }
+
+  const firstRow = data[0];
+
+  // Load metadata
+  document.getElementById('qa-assessor').value = firstRow.assessor || "";
+  document.getElementById('qa-date').value = firstRow.date || "";
+  document.getElementById('account').value = firstRow.account || "";
+  document.getElementById('employee-name').value = firstRow.employee || "";
+  document.getElementById('app-id').value = firstRow.appId || "";
+  document.getElementById('app-date').value = firstRow.receivedDate || "";
+  document.getElementById('app-type').value = firstRow.appType || "";
+
+  const grouped = {};
+
+  data.forEach(row => {
+    const catId = row.category.replace(/[^a-zA-Z0-9]/g, '_');
+    if (!grouped[catId]) grouped[catId] = [];
+    grouped[catId].push(row);
+  });
+
+  for (const [catId, rows] of Object.entries(grouped)) {
+    rows.forEach((row, index) => {
+      const radios = document.getElementsByName(`${catId}-q${index}`);
+      radios.forEach(radio => {
+        radio.checked = radio.value === row.answer;
+      });
+    });
+
+    const commentBox = document.querySelector(`#${catId}-score`).previousElementSibling;
+const commentText = rows[0].comments || "";
+
+if (commentBox) {
+  commentBox.value = commentText;
+
+  const icon = document.getElementById(`${catId}-icon`);
+  if (icon) {
+    icon.classList.toggle("filled", !!commentText);
+  }
+
+
+  const inlinePreview = document.getElementById(`${catId}-comment-inline`);
+  if (inlinePreview) {
+  inlinePreview.innerHTML = commentText
+    inlinePreview.innerHTML = commentText ? `Comment: ${commentText}` : "";
+}
+}
+  }
+
+  alert("Assessment loaded successfully!");
+  calculateScores(categoryScores);
+}
+
+
+
+    buildAssessmentForm("dynamic-sections", questions);
+    document.getElementById("load-input").addEventListener("change", function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      loadAssessmentData(data);
+    } catch (error) {
+      alert("Invalid file format. Please select a valid assessment JSON.");
+    }
+  };
+  reader.readAsText(file);
+});
+
+  </script>
+  <div id="comment-modal" class="custom-modal" style="display: none;">
+  <div class="custom-modal-content" style="max-width: 500px;">
+    <h3>Edit Section Comment</h3>
+    <textarea id="comment-input" rows="4" style="width: 100%; padding: 8px;"></textarea>
+    <div style="margin-top: 10px; display: flex; gap: 8px;">
+      <button onclick="saveComment()">Save</button>
+      <button onclick="closeCommentBox()">Cancel</button>
+      <button onclick="clearModalComment()" style="margin-left: auto; color: #c00;">Clear</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
